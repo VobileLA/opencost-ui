@@ -12,7 +12,9 @@ import {
   type ReportWindowPresetId,
 } from "~/lib/report-window-range";
 import AllocationPropertySelect from "~/components/allocation-property-select";
+import { K8sLabelValueSelect } from "~/components/k8s-label-select";
 import ReportFilterValueInput from "~/components/report-filter-value-input";
+import { isK8sLabelToken, labelKeyFromToken } from "~/lib/k8s-label";
 import {
   ASSETS_GROUPING_OPTIONS,
   ALLOCATION_GROUPING_OPTIONS,
@@ -421,6 +423,7 @@ export default function ReportBuilderSidePanel({
                     value={grouping}
                     onChange={(next) => setGroupingAt(index, next)}
                     allowLabel
+                    window={query.window}
                     options={ALLOCATION_GROUPING_OPTIONS}
                     selectClassName="h-10 min-w-0 w-full rounded border border-[var(--cds-border-subtle)] bg-[var(--cds-layer)] px-2.5 text-[13px] text-[var(--cds-text-primary)]"
                   />
@@ -659,6 +662,7 @@ export default function ReportBuilderSidePanel({
                     ariaLabel={`Filter ${index + 1} property`}
                     value={filter.property}
                     allowLabel={query.layer === "allocation"}
+                    window={query.window}
                     options={toFilterOptionsByLayer(query.layer)}
                     selectClassName="h-9 w-full rounded border border-[var(--cds-border-subtle)] bg-[var(--cds-layer)] px-2 text-[13px] text-[var(--cds-text-primary)]"
                     onChange={(property) => {
@@ -671,15 +675,25 @@ export default function ReportBuilderSidePanel({
                     }}
                   />
                 </div>
-                <ReportFilterValueInput
-                  layer={query.layer}
-                  window={query.window}
-                  field={filter.property}
-                  value={filter.value}
-                  filters={query.filters}
-                  filterIndex={index}
-                  onChange={(nextValue) => updateFilter(index, { value: nextValue })}
-                />
+                {query.layer === "allocation" && isK8sLabelToken(filter.property) ? (
+                  <K8sLabelValueSelect
+                    ariaLabel={`Filter ${index + 1} value`}
+                    window={query.window}
+                    labelKey={labelKeyFromToken(filter.property)}
+                    value={filter.value}
+                    onChange={(nextValue) => updateFilter(index, { value: nextValue })}
+                  />
+                ) : (
+                  <ReportFilterValueInput
+                    layer={query.layer}
+                    window={query.window}
+                    field={filter.property}
+                    value={filter.value}
+                    filters={query.filters}
+                    filterIndex={index}
+                    onChange={(nextValue) => updateFilter(index, { value: nextValue })}
+                  />
+                )}
               </div>
             ))}
           </div>

@@ -1,6 +1,7 @@
-import { Select, SelectItem, TextInput } from "@carbon/react";
+import { Select, SelectItem } from "@carbon/react";
 import { Tune } from "@mui/icons-material";
 import AllocationPropertySelect from "~/components/allocation-property-select";
+import { K8sLabelKeySelect, K8sLabelValueSelect } from "~/components/k8s-label-select";
 import {
   CLOUD_WINDOW_OPTIONS,
   CLOUD_AGGREGATION_OPTIONS,
@@ -260,6 +261,7 @@ export function AllocationFilterControls({
         value={aggregateBy}
         onChange={onAggregateByChange}
         allowLabel
+        window={window}
         variant="carbon"
         options={ALLOCATION_AGGREGATE_OPTIONS.map((option) => ({
           label: option.name,
@@ -301,21 +303,25 @@ export function AllocationFilterControls({
         className="mt-3 grid gap-3"
         style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}
       >
-        <TextInput
+        <K8sLabelKeySelect
           id={`${idPrefix}-label-filter-key`}
-          labelText="Filter label key"
-          size="sm"
+          labelText="Filter label"
+          window={window}
           value={labelFilterKey}
-          placeholder="solution"
-          onChange={(event) => onLabelFilterKeyChange(event.target.value)}
+          variant="carbon"
+          onChange={(key) => {
+            onLabelFilterKeyChange(key);
+            if (key !== labelFilterKey) onLabelFilterValueChange("");
+          }}
         />
-        <TextInput
+        <K8sLabelValueSelect
           id={`${idPrefix}-label-filter-value`}
-          labelText="Filter label value"
-          size="sm"
+          labelText="Filter value"
+          window={window}
+          labelKey={labelFilterKey}
           value={labelFilterValue}
-          placeholder="lsr"
-          onChange={(event) => onLabelFilterValueChange(event.target.value)}
+          variant="carbon"
+          onChange={onLabelFilterValueChange}
         />
       </div>
     ) : null}

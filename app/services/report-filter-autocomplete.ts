@@ -51,6 +51,11 @@ const ALLOWED: Partial<Record<ReportLayer, Set<string>>> = {
 function resolveField(layer: ReportLayer, property: string): string | null {
   if (!(layer in ENDPOINTS)) return null;
 
+  // `field=label` lists keys. `field=label:<key>` lists values of that key.
+  if (layer === "allocation" && (property === "label" || property === "namespacelabel")) {
+    return property;
+  }
+
   const labeled = /^(label|namespacelabel):(.+)$/.exec(property);
   if (labeled) {
     return labeled[2].trim().length > 0 ? property : null;
@@ -87,6 +92,7 @@ export async function fetchReportFilterAutocomplete(options: {
   search?: string;
   filters?: ReportFilterRule[];
   excludeFilterIndex?: number;
+  limit?: number;
 }): Promise<string[]> {
   const endpoint = ENDPOINTS[options.layer];
   const apiField = resolveField(options.layer, options.field);
@@ -100,7 +106,7 @@ export async function fetchReportFilterAutocomplete(options: {
   const params: Record<string, string | number> = {
     window: options.window,
     field: apiField,
-    limit: 25,
+    limit: options.limit ?? 25,
   };
   const search = options.search?.trim();
   if (search) params.search = search;

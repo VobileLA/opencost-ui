@@ -1,4 +1,5 @@
-import { Select, SelectItem, TextInput } from "@carbon/react";
+import { Select, SelectItem } from "@carbon/react";
+import { K8sLabelKeySelect } from "~/components/k8s-label-select";
 import {
   K8S_LABEL_OPTION,
   isK8sLabelToken,
@@ -20,6 +21,8 @@ interface AllocationPropertySelectProps {
   options: AllocationPropertyOption[];
   /** Allocation queries can group and filter by any pod label. */
   allowLabel?: boolean;
+  /** Window used to list label keys that exist in allocation data. */
+  window?: string;
   variant?: "carbon" | "native";
   selectClassName?: string;
 }
@@ -32,6 +35,7 @@ export default function AllocationPropertySelect({
   onChange,
   options,
   allowLabel = false,
+  window: allocationWindow = "",
   variant = "native",
   selectClassName,
 }: AllocationPropertySelectProps) {
@@ -47,25 +51,18 @@ export default function AllocationPropertySelect({
     onChange(next);
   };
 
-  const keyInput =
-    labelMode && variant === "carbon" ? (
-      <TextInput
-        id={`${id ?? "allocation-property"}-label-key`}
-        labelText="Label key"
-        size="sm"
-        value={labelKey}
-        placeholder="solution"
-        onChange={(event) => onChange(tokenFromLabelKey(event.target.value))}
-      />
-    ) : labelMode ? (
-      <input
-        aria-label={ariaLabel ? `${ariaLabel} label key` : "Label key"}
-        value={labelKey}
-        placeholder="Label key, e.g. solution"
-        onChange={(event) => onChange(tokenFromLabelKey(event.target.value))}
-        className="h-9 w-full rounded border border-[var(--cds-border-subtle)] bg-[var(--cds-field)] px-2 text-[13px] text-[var(--cds-text-primary)]"
-      />
-    ) : null;
+  const keyInput = labelMode ? (
+    <K8sLabelKeySelect
+      id={`${id ?? "allocation-property"}-label-key`}
+      labelText="Label key"
+      ariaLabel={ariaLabel ? `${ariaLabel} label key` : "Label key"}
+      window={allocationWindow}
+      value={labelKey}
+      variant={variant}
+      selectClassName={selectClassName}
+      onChange={(key) => onChange(tokenFromLabelKey(key))}
+    />
+  ) : null;
 
   if (variant === "carbon") {
     return (
