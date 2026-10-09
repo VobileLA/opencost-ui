@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - main
+      - feat/k8s-label-aggregate-filter 
 
 jobs:
   setup-build-publish-deploy:
     name: Prod test and Push
-    runs-on:
-      labels: Large-runners
-    environment: development
+    runs-on: ubuntu-latest
+    environment: prod
 
     permissions:
       contents: "read"
