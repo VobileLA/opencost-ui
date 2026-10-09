@@ -4,6 +4,7 @@ import AssetsService from "~/services/assets";
 import CloudCostService from "~/services/cloud-cost";
 import ExternalCostsService from "~/services/external-costs";
 import { parseReportWindowRange } from "~/lib/report-window-range";
+import { labelKeyFromToken, isQueryableAggregate } from "~/lib/k8s-label";
 import { parseFilters, rangeToCumulative, toCurrency } from "~/lib/legacy-util";
 import type { Asset } from "~/lib/assets-api";
 import type {
@@ -121,6 +122,10 @@ const MEASURE_LABELS: Record<AllocationMeasure, string> = {
 
 function formatGroupingToken(g: string): string {
   if (g.length === 0) return "Name";
+  if (g.startsWith("label:")) {
+    const key = labelKeyFromToken(g);
+    return key ? `${key} label` : "Kubernetes label";
+  }
   return g.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
 }
 
@@ -385,6 +390,18 @@ export async function runAllocationReport(
   const groupings = query.groupings.length > 0 ? query.groupings : ["namespace"];
   const aggregate = groupings.join(",");
   const metrics = measures.join(",");
+
+  if (!isQueryableAggregate(aggregate)) {
+    return {
+      layer: "allocation",
+      groupingLabel: toGroupingLabel(groupings),
+      measureLabel: measureListLabel(measures),
+      rows: [],
+      totalValue: 0,
+      totalDisplayValue: toCurrency(0, query.currency),
+      timeSeries: { seriesKeys: [], points: [] },
+    };
+  }
 
   const response = await AllocationService.fetchAllocation(query.window, aggregate, {
     accumulate: query.accumulate,

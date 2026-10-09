@@ -17,6 +17,7 @@ import {
   FilterableWidgetHeader,
 } from "./scoped-views";
 import { useAllocationFilters } from "./allocation-filters-context";
+import { aggregateDisplayName, isQueryableAggregate, withLabelFilter } from "~/lib/k8s-label";
 import { reportAccumulateLabel } from "~/types/report";
 import { primary, greyscale, browns } from "~/constants/colors";
 interface ChartPoint {
@@ -48,7 +49,7 @@ function generateTitle(
   const aggOpt = ALLOCATION_AGGREGATE_OPTIONS.find(
     (o) => o.value === aggregateBy,
   );
-  const aggregationName = (aggOpt?.name ?? aggregateBy).toLowerCase();
+  const aggregationName = aggregateDisplayName(aggregateBy, aggOpt?.name).toLowerCase();
 
   const gran = reportAccumulateLabel(accumulate);
   return `${windowName} by ${aggregationName} (${gran})`;
@@ -171,7 +172,7 @@ export interface CostAllocationChartProps {
 
 export default function CostAllocationChart({
   title = "Cost Allocation",
-  description = "Cost breakdown by cluster, namespace, pod, or other dimension",
+  description = "Cost breakdown by cluster, namespace, pod, or Kubernetes label",
   window: windowProp,
   aggregateBy: aggregateByProp,
   accumulate: accumulateProp,
@@ -199,6 +200,15 @@ export default function CostAllocationChart({
   const drilldownFilters = useSharedFilters
     ? (sharedFilters.drilldownFilters ?? [])
     : [];
+  const requestFilters = useMemo(
+    () =>
+      withLabelFilter(
+        drilldownFilters,
+        sharedFilters.labelFilterKey,
+        sharedFilters.labelFilterValue,
+      ),
+    [drilldownFilters, sharedFilters.labelFilterKey, sharedFilters.labelFilterValue],
+  );
 
   const [rawData, setRawData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -216,6 +226,7 @@ export default function CostAllocationChart({
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      if (!isQueryableAggregate(aggregateBy)) return;
       setLoading(true);
       try {
         const resp = await AllocationService.fetchAllocation(
@@ -224,7 +235,7 @@ export default function CostAllocationChart({
           {
             accumulate,
             includeIdle,
-            filters: drilldownFilters.length > 0 ? drilldownFilters : undefined,
+            filters: requestFilters,
           },
         );
         const raw = Array.isArray(resp?.data)
@@ -247,7 +258,7 @@ export default function CostAllocationChart({
     return () => {
       cancelled = true;
     };
-  }, [window, aggregateBy, accumulate, includeIdle, drilldownFilters]);
+  }, [window, aggregateBy, accumulate, includeIdle, requestFilters]);
 
   const chartOptions = useMemo(() => {
     const colorScale = buildColorScale(chartData);
@@ -340,6 +351,10 @@ export default function CostAllocationChart({
             onAccumulateChange={(v) => setFilter("accumulate", v)}
             onIncludeIdleChange={(v) => setFilter("includeIdle", v)}
             onIncludeUnallocatedChange={(v) => setFilter("includeUnallocated", v)}
+            labelFilterKey={sharedFilters.labelFilterKey}
+            labelFilterValue={sharedFilters.labelFilterValue}
+            onLabelFilterKeyChange={(v) => setFilter("labelFilterKey", v)}
+            onLabelFilterValueChange={(v) => setFilter("labelFilterValue", v)}
             idPrefix="chart-alloc"
           />
         }

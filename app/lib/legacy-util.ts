@@ -1,4 +1,5 @@
 import { forEach, get, round } from "lodash";
+import { parseFilterPart, toFilterClause } from "~/lib/k8s-label";
 
 // rangeToCumulative takes an AllocationSetRange (array of AllocationSet)
 // and accumulates the values into a single AllocationSet (object).
@@ -271,11 +272,8 @@ export function parseFilters(
     [
       ...new Set(
         filters
-          .filter((f) => String(f.value).trim().length > 0)
-          .map((f) => {
-            const escapedValue = String(f.value).replace(/"/g, '\\"');
-            return `${f.property}:"${escapedValue}"`;
-          }),
+          .map((f) => toFilterClause(f.property, f.value))
+          .filter((clause): clause is string => clause !== null),
       ),
     ].join("+") || ""
   );
@@ -288,13 +286,8 @@ export function parseFiltersFromUrl(
   const filters: { property: string; value: string }[] = [];
   const parts = filterString.split("+");
   for (const part of parts) {
-    const match = part.match(/^([^:]+):"((?:[^"\\]|\\.)*)"$/);
-    if (match) {
-      filters.push({
-        property: match[1].trim(),
-        value: match[2].replace(/\\"/g, '"'),
-      });
-    }
+    const parsed = parseFilterPart(part);
+    if (parsed) filters.push(parsed);
   }
   return filters;
 }

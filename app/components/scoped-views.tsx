@@ -1,5 +1,6 @@
-import { Select, SelectItem } from "@carbon/react";
+import { Select, SelectItem, TextInput } from "@carbon/react";
 import { Tune } from "@mui/icons-material";
+import AllocationPropertySelect from "~/components/allocation-property-select";
 import {
   CLOUD_WINDOW_OPTIONS,
   CLOUD_AGGREGATION_OPTIONS,
@@ -54,8 +55,25 @@ export interface AllocationFilterValues {
   accumulate: string;
   includeIdle: boolean;
   includeUnallocated: boolean;
+  /** Pod label key. Applied only when labelFilterValue is also set. */
+  labelFilterKey: string;
+  labelFilterValue: string;
   drilldownAggregateBy?: string;
   drilldownFilters?: { property: string; value: string }[];
+}
+
+export function initialAllocationFilters(): AllocationFilterValues {
+  return {
+    window: DEFAULT_ALLOCATION_FILTERS.allocationWindow,
+    aggregateBy: DEFAULT_ALLOCATION_FILTERS.allocationAggregateBy,
+    accumulate: DEFAULT_ALLOCATION_FILTERS.allocationAccumulate,
+    includeIdle: DEFAULT_ALLOCATION_FILTERS.allocationIncludeIdle,
+    includeUnallocated: DEFAULT_ALLOCATION_FILTERS.allocationIncludeUnallocated,
+    labelFilterKey: "",
+    labelFilterValue: "",
+    drilldownAggregateBy: undefined,
+    drilldownFilters: [],
+  };
 }
 
 export interface CloudFilterValues {
@@ -184,11 +202,15 @@ interface AllocationFilterControlsProps {
   accumulate: string;
   includeIdle: boolean;
   includeUnallocated?: boolean;
+  labelFilterKey?: string;
+  labelFilterValue?: string;
   onWindowChange: (v: string) => void;
   onAggregateByChange: (v: string) => void;
   onAccumulateChange: (v: string) => void;
   onIncludeIdleChange: (v: boolean) => void;
   onIncludeUnallocatedChange?: (v: boolean) => void;
+  onLabelFilterKeyChange?: (v: string) => void;
+  onLabelFilterValueChange?: (v: string) => void;
   idPrefix?: string;
   compact?: boolean;
 }
@@ -199,17 +221,22 @@ export function AllocationFilterControls({
   accumulate,
   includeIdle,
   includeUnallocated,
+  labelFilterKey = "",
+  labelFilterValue = "",
   onWindowChange,
   onAggregateByChange,
   onAccumulateChange,
   onIncludeIdleChange,
   onIncludeUnallocatedChange,
+  onLabelFilterKeyChange,
+  onLabelFilterValueChange,
   idPrefix = "alloc",
   compact = true,
 }: AllocationFilterControlsProps) {
   return (
+    <div className={compact ? "mb-3" : "mb-4"}>
     <div
-      className={`grid items-end ${compact ? "gap-3 mb-3" : "gap-4 mb-4"}`}
+      className={`grid items-end ${compact ? "gap-3" : "gap-4"}`}
       style={{
         gridTemplateColumns: compact
           ? "repeat(auto-fit, minmax(120px, 1fr))"
@@ -227,17 +254,18 @@ export function AllocationFilterControls({
           <SelectItem key={o.value} value={o.value} text={o.name} />
         ))}
       </Select>
-      <Select
+      <AllocationPropertySelect
         id={`${idPrefix}-aggregate`}
         labelText="Aggregate by"
         value={aggregateBy}
-        size="sm"
-        onChange={(e) => onAggregateByChange(e.target.value)}
-      >
-        {ALLOCATION_AGGREGATE_OPTIONS.map((o) => (
-          <SelectItem key={o.value} value={o.value} text={o.name} />
-        ))}
-      </Select>
+        onChange={onAggregateByChange}
+        allowLabel
+        variant="carbon"
+        options={ALLOCATION_AGGREGATE_OPTIONS.map((option) => ({
+          label: option.name,
+          value: option.value,
+        }))}
+      />
       <Select
         id={`${idPrefix}-accumulate`}
         labelText="Granularity"
@@ -267,6 +295,30 @@ export function AllocationFilterControls({
           Include unallocated costs
         </label>
       ) : null}
+    </div>
+    {onLabelFilterKeyChange && onLabelFilterValueChange ? (
+      <div
+        className="mt-3 grid gap-3"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}
+      >
+        <TextInput
+          id={`${idPrefix}-label-filter-key`}
+          labelText="Filter label key"
+          size="sm"
+          value={labelFilterKey}
+          placeholder="solution"
+          onChange={(event) => onLabelFilterKeyChange(event.target.value)}
+        />
+        <TextInput
+          id={`${idPrefix}-label-filter-value`}
+          labelText="Filter label value"
+          size="sm"
+          value={labelFilterValue}
+          placeholder="lsr"
+          onChange={(event) => onLabelFilterValueChange(event.target.value)}
+        />
+      </div>
+    ) : null}
     </div>
   );
 }

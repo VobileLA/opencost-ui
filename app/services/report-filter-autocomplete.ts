@@ -51,8 +51,9 @@ const ALLOWED: Partial<Record<ReportLayer, Set<string>>> = {
 function resolveField(layer: ReportLayer, property: string): string | null {
   if (!(layer in ENDPOINTS)) return null;
 
-  if (property.startsWith("label:") || property.startsWith("namespacelabel:")) {
-    return property;
+  const labeled = /^(label|namespacelabel):(.+)$/.exec(property);
+  if (labeled) {
+    return labeled[2].trim().length > 0 ? property : null;
   }
 
   const apiField = ALIASES[layer]?.[property] ?? property;

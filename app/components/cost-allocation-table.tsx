@@ -27,6 +27,7 @@ import {
   FilterableWidgetHeader,
 } from "./scoped-views";
 import { useAllocationFilters } from "./allocation-filters-context";
+import { aggregateDisplayName, isQueryableAggregate, withLabelFilter } from "~/lib/k8s-label";
 import { reportAccumulateLabel } from "~/types/report";
 
 function generateTitle(
@@ -43,7 +44,7 @@ function generateTitle(
   const aggOpt = ALLOCATION_AGGREGATE_OPTIONS.find(
     (o) => o.value === aggregateBy,
   );
-  const aggregationName = (aggOpt?.name ?? aggregateBy).toLowerCase();
+  const aggregationName = aggregateDisplayName(aggregateBy, aggOpt?.name).toLowerCase();
   const gran = reportAccumulateLabel(accumulate);
   return `${windowName} by ${aggregationName} (${gran})`;
 }
@@ -116,6 +117,15 @@ export default function CostAllocationTable({
   const drilldownFilters = useSharedFilters
     ? (sharedFilters.drilldownFilters ?? [])
     : localDrilldownFilters;
+  const requestFilters = useMemo(
+    () =>
+      withLabelFilter(
+        drilldownFilters,
+        sharedFilters.labelFilterKey,
+        sharedFilters.labelFilterValue,
+      ),
+    [drilldownFilters, sharedFilters.labelFilterKey, sharedFilters.labelFilterValue],
+  );
 
   const setDrilldownFilters = (
     filters: { property: string; value: string }[],
@@ -196,6 +206,7 @@ export default function CostAllocationTable({
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      if (!isQueryableAggregate(aggregateBy)) return;
       setLoading(true);
       try {
         const resp = await AllocationService.fetchAllocation(
@@ -204,7 +215,7 @@ export default function CostAllocationTable({
           {
             accumulate,
             includeIdle,
-            filters: drilldownFilters.length > 0 ? drilldownFilters : undefined,
+            filters: requestFilters,
           },
         );
         const raw = Array.isArray(resp?.data)
@@ -231,7 +242,7 @@ export default function CostAllocationTable({
     return () => {
       cancelled = true;
     };
-  }, [window, aggregateBy, accumulate, includeIdle, drilldownFilters]);
+  }, [window, aggregateBy, accumulate, includeIdle, requestFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -407,6 +418,10 @@ export default function CostAllocationTable({
               onIncludeUnallocatedChange={(v) =>
                 setFilter("includeUnallocated", v)
               }
+              labelFilterKey={sharedFilters.labelFilterKey}
+              labelFilterValue={sharedFilters.labelFilterValue}
+              onLabelFilterKeyChange={(v) => setFilter("labelFilterKey", v)}
+              onLabelFilterValueChange={(v) => setFilter("labelFilterValue", v)}
               idPrefix="table-alloc"
             />
           }

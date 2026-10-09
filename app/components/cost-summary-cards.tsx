@@ -14,6 +14,7 @@ import {
   rangeToCumulative,
   cumulativeToTotals,
 } from "~/lib/legacy-util";
+import { isQueryableAggregate, withLabelFilter } from "~/lib/k8s-label";
 import {
   AllocationFilterControls,
   DEFAULT_ALLOCATION_FILTERS,
@@ -81,6 +82,8 @@ export default function CostSummaryCards({
     aggregateBy: DEFAULT_ALLOCATION_FILTERS.allocationAggregateBy,
     accumulate: DEFAULT_ALLOCATION_FILTERS.allocationAccumulate,
     includeIdle: DEFAULT_ALLOCATION_FILTERS.allocationIncludeIdle,
+    labelFilterKey: "",
+    labelFilterValue: "",
   });
   const currency = defaultCurrency;
   const window = windowProp ?? localFilters.window;
@@ -95,13 +98,19 @@ export default function CostSummaryCards({
     let cancelled = false;
 
     async function load() {
+      if (!isQueryableAggregate(aggregateBy)) return;
       setLoading(true);
       try {
+        const labelFilters = withLabelFilter(
+          filters,
+          localFilters.labelFilterKey,
+          localFilters.labelFilterValue,
+        );
         const [allocResp, cloudResp, externalResp] = await Promise.allSettled([
           AllocationService.fetchAllocation(window, aggregateBy, {
             accumulate,
             includeIdle,
-            filters: filters.length ? filters : undefined,
+            filters: labelFilters,
           }),
           CloudCostService.fetchCloudCostData(
             window,
@@ -172,7 +181,15 @@ export default function CostSummaryCards({
     return () => {
       cancelled = true;
     };
-  }, [window, aggregateBy, accumulate, includeIdle, filters]);
+  }, [
+    window,
+    aggregateBy,
+    accumulate,
+    includeIdle,
+    filters,
+    localFilters.labelFilterKey,
+    localFilters.labelFilterValue,
+  ]);
 
   const setFilter = (
     key: keyof typeof localFilters,
@@ -197,6 +214,10 @@ export default function CostSummaryCards({
             onAggregateByChange={(v) => setFilter("aggregateBy", v)}
             onAccumulateChange={(v) => setFilter("accumulate", v)}
             onIncludeIdleChange={(v) => setFilter("includeIdle", v)}
+            labelFilterKey={localFilters.labelFilterKey}
+            labelFilterValue={localFilters.labelFilterValue}
+            onLabelFilterKeyChange={(v) => setFilter("labelFilterKey", v)}
+            onLabelFilterValueChange={(v) => setFilter("labelFilterValue", v)}
             idPrefix="summary-alloc"
           />
         }

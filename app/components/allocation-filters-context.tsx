@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import {
-  DEFAULT_ALLOCATION_FILTERS,
+  initialAllocationFilters,
   type AllocationFilterValues,
 } from "./scoped-views";
 
@@ -27,15 +27,9 @@ export function useAllocationFilters(
   ) => void,
 ] {
   const ctx = useContext(AllocationFiltersContext);
-  const [localFilters, setLocalFilters] = useState<AllocationFilterValues>({
-    window: DEFAULT_ALLOCATION_FILTERS.allocationWindow,
-    aggregateBy: DEFAULT_ALLOCATION_FILTERS.allocationAggregateBy,
-    accumulate: DEFAULT_ALLOCATION_FILTERS.allocationAccumulate,
-    includeIdle: DEFAULT_ALLOCATION_FILTERS.allocationIncludeIdle,
-    includeUnallocated: DEFAULT_ALLOCATION_FILTERS.allocationIncludeUnallocated,
-    drilldownAggregateBy: undefined,
-    drilldownFilters: [],
-  });
+  const [localFilters, setLocalFilters] = useState<AllocationFilterValues>(
+    initialAllocationFilters,
+  );
 
   if (useShared && ctx) {
     return [ctx.filters, ctx.setFilters];
@@ -50,15 +44,9 @@ interface AllocationFiltersProviderProps {
 export function AllocationFiltersProvider({
   children,
 }: AllocationFiltersProviderProps) {
-  const [filters, setFilters] = useState<AllocationFilterValues>({
-    window: DEFAULT_ALLOCATION_FILTERS.allocationWindow,
-    aggregateBy: DEFAULT_ALLOCATION_FILTERS.allocationAggregateBy,
-    accumulate: DEFAULT_ALLOCATION_FILTERS.allocationAccumulate,
-    includeIdle: DEFAULT_ALLOCATION_FILTERS.allocationIncludeIdle,
-    includeUnallocated: DEFAULT_ALLOCATION_FILTERS.allocationIncludeUnallocated,
-    drilldownAggregateBy: undefined,
-    drilldownFilters: [],
-  });
+  const [filters, setFilters] = useState<AllocationFilterValues>(
+    initialAllocationFilters,
+  );
 
   const setFiltersStable = useCallback(
     (

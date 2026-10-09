@@ -11,6 +11,7 @@ import {
   toUtcDateInputValue,
   type ReportWindowPresetId,
 } from "~/lib/report-window-range";
+import AllocationPropertySelect from "~/components/allocation-property-select";
 import ReportFilterValueInput from "~/components/report-filter-value-input";
 import {
   ASSETS_GROUPING_OPTIONS,
@@ -413,20 +414,16 @@ export default function ReportBuilderSidePanel({
             </div>
             <div className="space-y-2">
               {groupings.map((grouping, index) => (
-                <div key={`grouping-${index}-${grouping}`} className="flex items-center gap-2">
-                  <select
+                <div key={`grouping-${index}`} className="flex items-center gap-2">
+                  <AllocationPropertySelect
                     id={index === 0 ? "report-grouping-0" : undefined}
-                    aria-label={`Grouping ${index + 1}`}
+                    ariaLabel={`Grouping ${index + 1}`}
                     value={grouping}
-                    onChange={(event) => setGroupingAt(index, event.target.value)}
-                    className="h-10 min-w-0 flex-1 rounded border border-[var(--cds-border-subtle)] bg-[var(--cds-layer)] px-2.5 text-[13px] text-[var(--cds-text-primary)]"
-                  >
-                    {ALLOCATION_GROUPING_OPTIONS.map((groupingOption) => (
-                      <option key={groupingOption.value} value={groupingOption.value}>
-                        {groupingOption.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(next) => setGroupingAt(index, next)}
+                    allowLabel
+                    options={ALLOCATION_GROUPING_OPTIONS}
+                    selectClassName="h-10 min-w-0 w-full rounded border border-[var(--cds-border-subtle)] bg-[var(--cds-layer)] px-2.5 text-[13px] text-[var(--cds-text-primary)]"
+                  />
                   <button
                     type="button"
                     disabled={groupings.length <= 1}
@@ -641,7 +638,7 @@ export default function ReportBuilderSidePanel({
           <div className="space-y-3 overflow-visible">
             {query.filters.map((filter, index) => (
               <div
-                key={`${filter.property}-${index}`}
+                key={`filter-${index}`}
                 className="overflow-visible rounded border border-[var(--cds-border-subtle)] bg-[#fafafa] p-2"
               >
                 <div className="mb-2 flex items-center justify-between">
@@ -657,22 +654,23 @@ export default function ReportBuilderSidePanel({
                     <DeleteOutlined fontSize="small" />
                   </button>
                 </div>
-                <select
-                  value={filter.property}
-                  onChange={(event) =>
-                    updateFilter(index, {
-                      property: event.target.value,
-                      value: "",
-                    })
-                  }
-                  className="mb-2 h-9 w-full rounded border border-[var(--cds-border-subtle)] bg-[var(--cds-layer)] px-2 text-[13px] text-[var(--cds-text-primary)]"
-                >
-                  {toFilterOptionsByLayer(query.layer).map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="mb-2">
+                  <AllocationPropertySelect
+                    ariaLabel={`Filter ${index + 1} property`}
+                    value={filter.property}
+                    allowLabel={query.layer === "allocation"}
+                    options={toFilterOptionsByLayer(query.layer)}
+                    selectClassName="h-9 w-full rounded border border-[var(--cds-border-subtle)] bg-[var(--cds-layer)] px-2 text-[13px] text-[var(--cds-text-primary)]"
+                    onChange={(property) => {
+                      const keepValue =
+                        filter.property.startsWith("label:") && property.startsWith("label:");
+                      updateFilter(index, {
+                        property,
+                        ...(keepValue ? {} : { value: "" }),
+                      });
+                    }}
+                  />
+                </div>
                 <ReportFilterValueInput
                   layer={query.layer}
                   window={query.window}
